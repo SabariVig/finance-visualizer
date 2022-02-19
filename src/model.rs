@@ -1,25 +1,53 @@
+use chrono::{Local, NaiveTime};
 use ledger_parser::{Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price};
+use ledger_utils::join_ledgers::join_ledgers;
 use rust_decimal::{Decimal, RoundingStrategy};
-use std::{env, error::Error, fs::File, io::Read, path::Path};
+use std::{env, error::Error, fs, path::Path};
 
 pub struct Model {
-    pub file: File,
     pub ledger: Ledger,
+    pub prices: Option<Price>,
+    path: String,
+    modified: NaiveTime,
 }
 
 impl Model {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
-        let mut file = File::open(path)?;
-        let mut file_string = String::new();
-        file.read_to_string(&mut file_string)?;
-        let ledger = ledger_parser::parse(&file_string)?;
-        // ledger.convert_to_currency("INR")?;
-        Ok(Model { file, ledger })
+    pub fn new(path: impl AsRef<Path> + Copy) -> Result<Self, Box<dyn Error>> {
+        let ledger_string = fs::read_to_string(path)?;
+        let ledger = ledger_parser::parse(&ledger_string)?;
+        let path = path
+            .as_ref()
+            .parent()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        Ok(Self {
+            ledger,
+            modified: Local::now().time(),
+            path: path,
+            prices: None,
+        })
     }
 
-    pub fn print(&self) -> Result<(), Box<dyn Error>> {
-        println!("{:?}", self.ledger);
-        Ok(())
+    pub fn open(&self, path: impl AsRef<Path>) -> Result<Ledger, Box<dyn Error>> {
+        let ledger_string = fs::read_to_string(path)?;
+        let ledger = ledger_parser::parse(&ledger_string)?;
+        let mut ledger_vec: Vec<Ledger> = Vec::new();
+        for item in &ledger.items {
+            if let LedgerItem::Include(include_path) = item {
+                let new_path = format!("{}/{}", &self.path, include_path);
+                let recursive_ledger = self.open(new_path)?;
+                ledger_vec.push(recursive_ledger);
+            }
+        }
+        ledger_vec.push(ledger);
+        let final_ledger = join_ledgers(ledger_vec);
+        Ok(final_ledger)
+    }
+
+    pub fn print(&self) {
+        println!("{}", self.ledger);
     }
 }
 
@@ -27,7 +55,7 @@ impl Default for Model {
     fn default() -> Self {
         // TODO: Change env to LEDGER_FILE
         let path = env::var("LEDGER_FILE_DEV").unwrap();
-        Self::new(path).unwrap()
+        Self::new(&path).unwrap()
     }
 }
 
