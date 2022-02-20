@@ -1,18 +1,24 @@
 mod handlers;
 mod model;
+use std::sync::Arc;
+
 use crate::model::Model;
-// use axum::{routing::get, Router};
+use axum::{routing::get, AddExtensionLayer, Router};
+use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let model = Model::new("/home/hawk/temp_ledger/ledger.complete")?;
-    let ledger = model.open("/home/hawk/temp_ledger/ledger.complete")?;
-    println!("{}",ledger);
+    let mut model = Model::new("/home/hawk/temp_ledger/ledger.complete")?;
+    model.convert_to_currency("INR", vec!["USD"])?;
 
-    // let app = Router::new().route("/ping", get(handlers::ping));
-    // axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
-    //     .serve(app.into_make_service())
-    //     .await
-    //     .unwrap();
+    let shared_shared = Arc::new(Mutex::new(model));
+    let app = Router::new()
+        .route("/ping", get(handlers::ping))
+        .route("/monthly/:path", get(handlers::monthly))
+        .layer(AddExtensionLayer::new(shared_shared));
+
+    axum::Server::bind(&"0.0.0.0:8080".parse()?)
+        .serve(app.into_make_service())
+        .await?;
     Ok(())
 }
