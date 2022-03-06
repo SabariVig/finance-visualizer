@@ -14,9 +14,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let shared_shared = Arc::new(Mutex::new(model));
     let app = Router::new()
         .route("/ping", get(handlers::ping))
+        .route("/print", get(handlers::print))
         .route("/monthly/:path", get(handlers::monthly))
         .layer(AddExtensionLayer::new(shared_shared));
 
+   tracing::debug!("server started on port 8080"); 
     axum::Server::bind(&"0.0.0.0:8080".parse()?)
         .serve(app.into_make_service())
         .await?;

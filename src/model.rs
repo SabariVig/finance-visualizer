@@ -66,6 +66,7 @@ impl Model {
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
+            println!("{:#?}", reports.monthly_change.get_account_balance(&[&account]));
             for (_name, amount) in reports
                 .monthly_change
                 .get_account_balance(&[&account])
@@ -84,7 +85,6 @@ impl Model {
 
     // pub async fn cashflow(account: String) -> Vec<LedgerResponse> {
     // }
-
 
     pub fn convert_to_currency(
         &mut self,

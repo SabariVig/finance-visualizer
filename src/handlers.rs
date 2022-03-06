@@ -19,6 +19,10 @@ pub async fn ping() -> &'static str {
     "Pong"
 }
 
+pub async fn print() -> &'static str {
+    "Pong"
+}
+
 pub async fn monthly(
     Path(account): Path<String>,
     Extension(state): Extension<Arc<Mutex<Model>>>,
@@ -27,5 +31,6 @@ pub async fn monthly(
     let mut model = state.lock().await;
     model.reload_file().unwrap();
     let response = &model.monthly(account).await;
+    println!("{}", json!(response));
     Json(json!(response))
 }
