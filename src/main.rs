@@ -16,9 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/ping", get(handlers::ping))
         .route("/print", get(handlers::print))
         .route("/monthly/:path", get(handlers::monthly))
+        .route("/cashflow/:path", get(handlers::cashflow))
         .layer(AddExtensionLayer::new(shared_shared));
 
-   tracing::debug!("server started on port 8080"); 
+    tracing::debug!("server started on port 8080");
     axum::Server::bind(&"0.0.0.0:8080".parse()?)
         .serve(app.into_make_service())
         .await?;

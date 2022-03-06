@@ -19,8 +19,24 @@ pub async fn ping() -> &'static str {
     "Pong"
 }
 
-pub async fn print() -> &'static str {
-    "Pong"
+pub async fn print(Extension(state): Extension<Arc<Mutex<Model>>>) -> String {
+    let state = Arc::clone(&state);
+    let mut model = state.lock().await;
+    model.reload_file().unwrap();
+    format!("{}", model.ledger)
+}
+
+
+pub async fn cashflow(
+    Path(account): Path<String>,
+    Extension(state): Extension<Arc<Mutex<Model>>>,
+) -> Json<Value> {
+    let state = Arc::clone(&state);
+    let mut model = state.lock().await;
+    model.reload_file().unwrap();
+    let response = &model.cashflow(account).await;
+    println!("{}", json!(response));
+    Json(json!(response))
 }
 
 pub async fn monthly(
