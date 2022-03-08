@@ -2,7 +2,10 @@ use crate::handlers::LedgerResponse;
 use chrono::NaiveDate;
 use filetime::FileTime;
 use ledger_parser::{Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price};
-use ledger_utils::{join_ledgers::join_ledgers, monthly_report::MonthlyReport};
+use ledger_utils::{
+    balance::Balance, join_ledgers::join_ledgers, monthly_report::MonthlyReport,
+    tree_balance::TreeBalanceNode,
+};
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::{env, error::Error, fs, path::Path};
 
@@ -73,7 +76,7 @@ impl Model {
                 .iter()
             {
                 response_vec.push(LedgerResponse {
-                    date: NaiveDate::from_ymd(reports.year, reports.month, 1).to_string(),
+                    date: Some(NaiveDate::from_ymd(reports.year, reports.month, 1).to_string()),
                     amount: amount.quantity,
                     account: Some(account.to_string()),
                 });
@@ -94,13 +97,29 @@ impl Model {
                 .iter()
             {
                 response_vec.push(LedgerResponse {
-                    date: NaiveDate::from_ymd(reports.year, reports.month, 1).to_string(),
+                    date: Some(NaiveDate::from_ymd(reports.year, reports.month, 1).to_string()),
                     amount: sum + amount.quantity,
                     account: Some(account.to_string()),
                 });
                 sum = sum + amount.quantity;
             }
         }
+        response_vec
+    }
+
+    pub async fn split(&self, account_path: String) -> Vec<LedgerResponse> {
+        let mut response_vec: Vec<LedgerResponse> = Vec::new();
+        let balance = Balance::from(&self.ledger);
+        let tree_balance = &TreeBalanceNode::from(balance);
+        let split_tree = &tree_balance.children[&account_path];
+        for (name, children) in &split_tree.children {
+            response_vec.push(LedgerResponse {
+                amount: children.balance.amounts["INR"].quantity,
+                account: Some(name.to_string()),
+                date: None,
+            })
+        }
+
         response_vec
     }
 

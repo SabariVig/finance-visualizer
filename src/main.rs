@@ -17,6 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/print", get(handlers::print))
         .route("/monthly/:path", get(handlers::monthly))
         .route("/cashflow/:path", get(handlers::cashflow))
+        .route("/split/:path", get(handlers::split))
         .layer(AddExtensionLayer::new(shared_shared));
 
     tracing::debug!("server started on port 8080");
