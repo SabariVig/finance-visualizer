@@ -17,3 +17,8 @@ tower = { version = "0.4", features = ["util", "timeout"] }
 serde = { version ="1.0.136", features = ["derive"] }
 serde_json = "1.0.71"
 tracing = "0.1"
+
+
+[[bin]]
+name = "financereports"
+path = "src/main.rs"

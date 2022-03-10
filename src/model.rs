@@ -183,6 +183,7 @@ impl Default for Model {
     fn default() -> Self {
         // TODO: Change env to LEDGER_FILE
         let path = env::var("LEDGER_FILE_DEV").unwrap();
+        println!("{}",path);
         let metadata = Path::new(&path).metadata().unwrap();
         let modified = FileTime::from_last_modification_time(&metadata);
 
