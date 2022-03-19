@@ -5,9 +5,16 @@ use std::sync::Arc;
 use crate::model::Model;
 use axum::{routing::get, AddExtensionLayer, Router};
 use tokio::sync::Mutex;
+use tower_http::trace::TraceLayer;
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     let mut model = Model::new("/home/hawk/temp_ledger/ledger.complete")?;
     model.convert_to_currency("INR", vec!["USD"])?;
 
@@ -18,9 +25,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/monthly/:path", get(handlers::monthly))
         .route("/cashflow/:path", get(handlers::cashflow))
         .route("/split/:path", get(handlers::split))
+        .route("/balance/:path", get(handlers::balance))
+        .layer(TraceLayer::new_for_http())
         .layer(AddExtensionLayer::new(shared_shared));
 
-    tracing::debug!("server started on port 8080");
+    tracing::info!("server started on port 8080");
     axum::Server::bind(&"0.0.0.0:8080".parse()?)
         .serve(app.into_make_service())
         .await?;

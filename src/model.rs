@@ -7,6 +7,7 @@ use ledger_utils::{
     tree_balance::TreeBalanceNode,
 };
 use rust_decimal::{Decimal, RoundingStrategy};
+use serde::Serialize;
 use std::{env, error::Error, fs, path::Path};
 
 pub struct Model {
@@ -65,7 +66,14 @@ impl Model {
         Ok(())
     }
 
-    pub async fn monthly(&self, account: String) -> Vec<LedgerResponse> {
+    pub async fn monthly(
+        &mut self,
+        account: String,
+        convert_commodity: bool,
+    ) -> Vec<LedgerResponse> {
+        if convert_commodity {
+            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
+        }
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
@@ -75,8 +83,9 @@ impl Model {
                 .amounts
                 .iter()
             {
+                let date = get_month_last_date(reports.month, reports.year);
                 response_vec.push(LedgerResponse {
-                    date: Some(NaiveDate::from_ymd(reports.year, reports.month, 1).to_string()),
+                    date: Some(NaiveDate::from_ymd(reports.year, reports.month, date).to_string()),
                     amount: amount.quantity,
                     account: Some(account.to_string()),
                 });
@@ -85,7 +94,14 @@ impl Model {
         response_vec
     }
 
-    pub async fn cashflow(&self, account: String) -> Vec<LedgerResponse> {
+    pub async fn cashflow(
+        &mut self,
+        account: String,
+        convert_commodity: bool,
+    ) -> Vec<LedgerResponse> {
+        if convert_commodity {
+            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
+        }
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         let mut sum = Decimal::new(0, 0);
@@ -96,8 +112,9 @@ impl Model {
                 .amounts
                 .iter()
             {
+                let date = get_month_last_date(reports.month, reports.year);
                 response_vec.push(LedgerResponse {
-                    date: Some(NaiveDate::from_ymd(reports.year, reports.month, 1).to_string()),
+                    date: Some(NaiveDate::from_ymd(reports.year, reports.month, date).to_string()),
                     amount: sum + amount.quantity,
                     account: Some(account.to_string()),
                 });
@@ -105,6 +122,19 @@ impl Model {
             }
         }
         response_vec
+    }
+
+    pub async fn balance(&mut self, account: String, convert_commodity: bool) -> LedgerResponse {
+        if convert_commodity {
+            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
+        }
+        let balance = Balance::from(&self.ledger);
+        let account_balance = balance.get_account_balance(&[&account]);
+        LedgerResponse {
+            date: None,
+            amount: account_balance.amounts.get("INR").unwrap().quantity,
+            account: Some(account),
+        }
     }
 
     pub async fn split(&self, account_path: String) -> Vec<LedgerResponse> {
@@ -119,7 +149,7 @@ impl Model {
                 date: None,
             })
         }
-
+        response_vec.sort_by(|a, b| b.amount.cmp(&a.amount));
         response_vec
     }
 
@@ -136,8 +166,9 @@ impl Model {
                         .as_ref()
                         .expect("Unable to get Posting Amount");
                     if posting_amount.amount.commodity.name != native_currency
-                        && foreign_currency
+                        && (foreign_currency
                             .contains(&&posting_amount.amount.commodity.name.as_str())
+                            || foreign_currency.contains(&"*"))
                     {
                         let commodity_prices = posting_amount
                             .price
@@ -183,7 +214,7 @@ impl Default for Model {
     fn default() -> Self {
         // TODO: Change env to LEDGER_FILE
         let path = env::var("LEDGER_FILE_DEV").unwrap();
-        println!("{}",path);
+        println!("{}", path);
         let metadata = Path::new(&path).metadata().unwrap();
         let modified = FileTime::from_last_modification_time(&metadata);
 
@@ -194,4 +225,16 @@ impl Default for Model {
             path,
         }
     }
+}
+
+fn get_month_last_date(m: u32, year: i32) -> u32 {
+    if m == 12 {
+        NaiveDate::from_ymd(year + 1, 1, 1)
+    } else {
+        NaiveDate::from_ymd(year, m + 1, 1)
+    }
+    .signed_duration_since(NaiveDate::from_ymd(year, m, 1))
+    .num_days()
+    .try_into()
+    .unwrap()
 }
