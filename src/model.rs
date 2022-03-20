@@ -7,8 +7,7 @@ use ledger_utils::{
     tree_balance::TreeBalanceNode,
 };
 use rust_decimal::{Decimal, RoundingStrategy};
-use serde::Serialize;
-use std::{env, error::Error, fs, path::Path};
+use std::{collections::HashMap, env, error::Error, fs, path::Path};
 
 pub struct Model {
     pub ledger: Ledger,
@@ -91,6 +90,16 @@ impl Model {
                 });
             }
         }
+        let mut hashmap: HashMap<String, LedgerResponse> = HashMap::new();
+        response_vec.iter().for_each(|a| {
+            hashmap
+                .entry(a.date.as_ref().unwrap().to_string())
+                .and_modify(|id| id.amount += a.amount)
+                .or_insert(a.clone());
+        });
+        let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
+        response_vec.sort_by(|a, b| b.date.cmp(&a.date));
+        println!("{:?}", response_vec);
         response_vec
     }
 
@@ -104,7 +113,6 @@ impl Model {
         }
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
-        let mut sum = Decimal::new(0, 0);
         for reports in &monthly_report.monthly_balances {
             for (_name, amount) in reports
                 .monthly_change
@@ -115,12 +123,25 @@ impl Model {
                 let date = get_month_last_date(reports.month, reports.year);
                 response_vec.push(LedgerResponse {
                     date: Some(NaiveDate::from_ymd(reports.year, reports.month, date).to_string()),
-                    amount: sum + amount.quantity,
+                    amount: amount.quantity,
                     account: Some(account.to_string()),
                 });
-                sum = sum + amount.quantity;
             }
         }
+
+        let mut hashmap: HashMap<String, LedgerResponse> = HashMap::new();
+        response_vec.iter().for_each(|a| {
+            hashmap
+                .entry(a.date.as_ref().unwrap().to_string())
+                .and_modify(|id| id.amount += a.amount)
+                .or_insert(a.clone());
+        });
+        let sum = Decimal::new(0, 0);
+        let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
+        response_vec.sort_by(|a, b| b.date.cmp(&a.date));
+        response_vec.iter_mut().for_each(|a| {
+            a.amount = sum + a.amount;
+        });
         response_vec
     }
 

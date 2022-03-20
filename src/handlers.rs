@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Serialize)]
+#[derive(Serialize,Clone,Debug)]
 pub struct LedgerResponse {
     pub date: Option<String>,
     pub amount: Decimal,
