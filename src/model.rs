@@ -71,7 +71,7 @@ impl Model {
         convert_commodity: bool,
     ) -> Vec<LedgerResponse> {
         if convert_commodity {
-            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
+            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO: Handel error later
         }
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
@@ -99,7 +99,6 @@ impl Model {
         });
         let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
         response_vec.sort_by(|a, b| b.date.cmp(&a.date));
-        println!("{:?}", response_vec);
         response_vec
     }
 
@@ -136,11 +135,15 @@ impl Model {
                 .and_modify(|id| id.amount += a.amount)
                 .or_insert(a.clone());
         });
-        let sum = Decimal::new(0, 0);
+        let mut sum = Decimal::new(0, 0);
         let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
-        response_vec.sort_by(|a, b| b.date.cmp(&a.date));
+        response_vec.sort_by(|a, b| a.date.cmp(&b.date));
         response_vec.iter_mut().for_each(|a| {
-            a.amount = sum + a.amount;
+            sum = sum + a.amount;
+            *a = LedgerResponse {
+                amount: sum,
+                ..a.clone()
+            };
         });
         response_vec
     }
