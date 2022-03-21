@@ -1,13 +1,14 @@
-use crate::handlers::LedgerResponse;
-use chrono::NaiveDate;
+use crate::handlers::LedgerR account: (), reality: (), amount: (), balance: (), status: (), comment: ()  account: (), reality: (), amount: (), balance: (), status: (), comment: () esponse;
+use chrono::{NaiveDate, NaiveDateTime};
 use filetime::FileTime;
-use ledger_parser::{Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price};
+use ledger_parser::{
+    Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price, Transaction,
+};
 use ledger_utils::{
     balance::Balance, join_ledgers::join_ledgers, monthly_report::MonthlyReport,
     tree_balance::TreeBalanceNode,
 };
 use rust_decimal::{Decimal, RoundingStrategy};
-use serde::Serialize;
 use std::{env, error::Error, fs, path::Path};
 
 pub struct Model {
@@ -207,6 +208,44 @@ impl Model {
 
     pub fn print(&self) {
         println!("{}", self.ledger);
+    }
+
+    pub fn sort_by_date(&mut self) {
+        let mut transactions = Vec::<Transaction>::new();
+        for item in &self.ledger.items {
+            match item {
+                LedgerItem::Transaction(transaction) => {
+                    transactions.push(transaction.clone());
+                }
+                _ => {}
+            }
+        }
+        &self.ledger.items.sort_by(|a, b| {
+            let a_trans = Transaction {
+                comment: None,
+                date: NaiveDate::new(),
+                effective_date: None,
+                status: None,
+                code: None,
+                description: "Hello",
+                postings: vec![Posting {
+                    account: None,
+                    amount: None,
+                    balance: None,
+                    reality: ledger_parser::Reality::Real,
+                    status: None,
+                    comment: None
+                }],
+            };
+            let b_trans: Transaction;
+            if let LedgerItem::Transaction(trans) = a {
+                a_trans = trans.clone();
+            }
+            if let LedgerItem::Transaction(trans) = b {
+                b_trans = trans.clone();
+            };
+            a_trans.date.cmp(&b_trans.date)
+        });
     }
 }
 
