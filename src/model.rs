@@ -1,5 +1,5 @@
-use crate::handlers::LedgerResponse;
 use crate::utils::get_month_last_date;
+use crate::{handlers::LedgerResponse, utils::new_transaction};
 use chrono::NaiveDate;
 use filetime::FileTime;
 use ledger_parser::{
@@ -51,7 +51,8 @@ impl Model {
             }
         }
         ledger_vec.push(ledger);
-        let final_ledger = join_ledgers(ledger_vec);
+        let mut final_ledger = join_ledgers(ledger_vec);
+        final_ledger.sort_by_date();
         Ok(final_ledger)
     }
 
@@ -76,6 +77,7 @@ impl Model {
         if convert_commodity {
             self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO: Handel error later
         }
+        self.sort_by_date();
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
@@ -93,15 +95,6 @@ impl Model {
                 });
             }
         }
-        let mut hashmap: HashMap<String, LedgerResponse> = HashMap::new();
-        response_vec.iter().for_each(|a| {
-            hashmap
-                .entry(a.date.as_ref().unwrap().to_string())
-                .and_modify(|id| id.amount += a.amount)
-                .or_insert(a.clone());
-        });
-        let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
-        response_vec.sort_by(|a, b| b.date.cmp(&a.date));
         response_vec
     }
 
@@ -131,28 +124,6 @@ impl Model {
                 });
             }
         }
-
-    pub async fn cashflow(
-        &mut self,
-        account: String,
-        convert_commodity: bool,
-    ) -> Vec<LedgerResponse> {
-        if convert_commodity {
-            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
-        }
-        self.sort_by_date();
-        let monthly_report = MonthlyReport::from(&self.ledger);
-        let mut response_vec: Vec<LedgerResponse> = Vec::new();
-        let mut sum = Decimal::new(0, 0);
-        let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
-        response_vec.sort_by(|a, b| a.date.cmp(&b.date));
-        response_vec.iter_mut().for_each(|a| {
-            sum = sum + a.amount;
-            *a = LedgerResponse {
-                amount: sum,
-                ..a.clone()
-            };
-        });
         response_vec
     }
 
@@ -237,39 +208,22 @@ impl Model {
         Ok(())
     }
 
-    pub fn print(&self) {
+    pub fn _print(&self) {
         println!("{}", self.ledger);
     }
 
     pub fn sort_by_date(&mut self) {
         let mut transactions = Vec::<Transaction>::new();
         for item in &self.ledger.items {
-            match item {
-                LedgerItem::Transaction(transaction) => {
-                    transactions.push(transaction.clone());
-                }
-                _ => {}
+            if let LedgerItem::Transaction(transaction) = item {
+                transactions.push(transaction.clone());
             }
         }
         let _ = &self.ledger.items.sort_by(|a, b| {
             // HACK:
-            let mut a_trans = Transaction {
-                comment: None,
-                date: NaiveDate::from_yo(2021, 01),
-                effective_date: None,
-                status: None,
-                code: None,
-                description: "Hello".to_string(),
-                postings: vec![Posting {
-                    account: "ABC".to_string(),
-                    amount: None,
-                    balance: None,
-                    reality: ledger_parser::Reality::Real,
-                    status: None,
-                    comment: None,
-                }],
-            };
-            let mut b_trans = a_trans.clone();
+            let mut a_trans = new_transaction();
+            let mut b_trans = new_transaction();
+
             if let LedgerItem::Transaction(trans) = a {
                 a_trans = trans.clone();
             }
@@ -298,3 +252,30 @@ impl Default for Model {
     }
 }
 
+trait LedgerHelper {
+    fn sort_by_date(&mut self);
+}
+
+impl LedgerHelper for Ledger {
+    fn sort_by_date(&mut self) {
+        let mut transactions = Vec::<Transaction>::new();
+        for item in &self.items {
+            if let LedgerItem::Transaction(transaction) = item {
+                transactions.push(transaction.clone());
+            }
+        }
+        let _ = &self.items.sort_by(|a, b| {
+            // HACK:
+            let mut a_trans = new_transaction();
+            let mut b_trans = new_transaction();
+
+            if let LedgerItem::Transaction(trans) = a {
+                a_trans = trans.clone();
+            }
+            if let LedgerItem::Transaction(trans) = b {
+                b_trans = trans.clone();
+            };
+            a_trans.date.cmp(&b_trans.date)
+        });
+    }
+}

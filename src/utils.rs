@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use ledger_parser::{Posting, Transaction};
 use tokio::signal;
 
 pub fn get_month_last_date(m: u32, year: i32) -> u32 {
@@ -37,4 +38,23 @@ pub async fn shutdown_signal() {
     }
 
     println!("signal received, starting graceful shutdown");
+}
+
+pub fn new_transaction() -> Transaction {
+    Transaction {
+        comment: None,
+        date: NaiveDate::from_yo(2021, 01),
+        effective_date: None,
+        status: None,
+        code: None,
+        description: "Hello".to_string(),
+        postings: vec![Posting {
+            account: "ABC".to_string(),
+            amount: None,
+            balance: None,
+            reality: ledger_parser::Reality::Real,
+            status: None,
+            comment: None,
+        }],
+    }
 }
