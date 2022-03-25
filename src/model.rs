@@ -1,5 +1,6 @@
-use crate::handlers::LedgerR account: (), reality: (), amount: (), balance: (), status: (), comment: ()  account: (), reality: (), amount: (), balance: (), status: (), comment: () esponse;
-use chrono::{NaiveDate, NaiveDateTime};
+use crate::handlers::LedgerResponse;
+use crate::utils::get_month_last_date;
+use chrono::NaiveDate;
 use filetime::FileTime;
 use ledger_parser::{
     Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price, Transaction,
@@ -75,6 +76,7 @@ impl Model {
         if convert_commodity {
             self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
         }
+        self.sort_by_date();
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
@@ -103,6 +105,7 @@ impl Model {
         if convert_commodity {
             self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
         }
+        self.sort_by_date();
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         let mut sum = Decimal::new(0, 0);
@@ -220,24 +223,25 @@ impl Model {
                 _ => {}
             }
         }
-        &self.ledger.items.sort_by(|a, b| {
-            let a_trans = Transaction {
+        let _ = &self.ledger.items.sort_by(|a, b| {
+            // HACK:
+            let mut a_trans = Transaction {
                 comment: None,
-                date: NaiveDate::new(),
+                date: NaiveDate::from_yo(2021, 01),
                 effective_date: None,
                 status: None,
                 code: None,
-                description: "Hello",
+                description: "Hello".to_string(),
                 postings: vec![Posting {
-                    account: None,
+                    account: "ABC".to_string(),
                     amount: None,
                     balance: None,
                     reality: ledger_parser::Reality::Real,
                     status: None,
-                    comment: None
+                    comment: None,
                 }],
             };
-            let b_trans: Transaction;
+            let mut b_trans = a_trans.clone();
             if let LedgerItem::Transaction(trans) = a {
                 a_trans = trans.clone();
             }
@@ -266,14 +270,3 @@ impl Default for Model {
     }
 }
 
-fn get_month_last_date(m: u32, year: i32) -> u32 {
-    if m == 12 {
-        NaiveDate::from_ymd(year + 1, 1, 1)
-    } else {
-        NaiveDate::from_ymd(year, m + 1, 1)
-    }
-    .signed_duration_since(NaiveDate::from_ymd(year, m, 1))
-    .num_days()
-    .try_into()
-    .unwrap()
-}

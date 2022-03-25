@@ -29,7 +29,6 @@ pub async fn ping(Extension(state): Extension<Arc<Mutex<Model>>>) -> &'static st
     let state = Arc::clone(&state);
     let mut model = state.lock().await;
     model.reload_file().unwrap();
-    model.sort_by_date();
     "Pong"
 }
 
