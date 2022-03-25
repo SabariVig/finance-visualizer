@@ -1,13 +1,16 @@
 use crate::handlers::LedgerResponse;
+use crate::utils::get_month_last_date;
 use chrono::NaiveDate;
 use filetime::FileTime;
-use ledger_parser::{Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price};
+use ledger_parser::{
+    Amount, Commodity, Ledger, LedgerItem, Posting, PostingAmount, Price, Transaction,
+};
 use ledger_utils::{
     balance::Balance, join_ledgers::join_ledgers, monthly_report::MonthlyReport,
     tree_balance::TreeBalanceNode,
 };
 use rust_decimal::{Decimal, RoundingStrategy};
-use std::{collections::HashMap, env, error::Error, fs, path::Path};
+use std::{env, error::Error, fs, path::Path};
 
 pub struct Model {
     pub ledger: Ledger,
@@ -110,6 +113,7 @@ impl Model {
         if convert_commodity {
             self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
         }
+        self.sort_by_date();
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
@@ -128,13 +132,17 @@ impl Model {
             }
         }
 
-        let mut hashmap: HashMap<String, LedgerResponse> = HashMap::new();
-        response_vec.iter().for_each(|a| {
-            hashmap
-                .entry(a.date.as_ref().unwrap().to_string())
-                .and_modify(|id| id.amount += a.amount)
-                .or_insert(a.clone());
-        });
+    pub async fn cashflow(
+        &mut self,
+        account: String,
+        convert_commodity: bool,
+    ) -> Vec<LedgerResponse> {
+        if convert_commodity {
+            self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
+        }
+        self.sort_by_date();
+        let monthly_report = MonthlyReport::from(&self.ledger);
+        let mut response_vec: Vec<LedgerResponse> = Vec::new();
         let mut sum = Decimal::new(0, 0);
         let mut response_vec: Vec<LedgerResponse> = hashmap.values().cloned().collect();
         response_vec.sort_by(|a, b| a.date.cmp(&b.date));
@@ -232,6 +240,45 @@ impl Model {
     pub fn print(&self) {
         println!("{}", self.ledger);
     }
+
+    pub fn sort_by_date(&mut self) {
+        let mut transactions = Vec::<Transaction>::new();
+        for item in &self.ledger.items {
+            match item {
+                LedgerItem::Transaction(transaction) => {
+                    transactions.push(transaction.clone());
+                }
+                _ => {}
+            }
+        }
+        let _ = &self.ledger.items.sort_by(|a, b| {
+            // HACK:
+            let mut a_trans = Transaction {
+                comment: None,
+                date: NaiveDate::from_yo(2021, 01),
+                effective_date: None,
+                status: None,
+                code: None,
+                description: "Hello".to_string(),
+                postings: vec![Posting {
+                    account: "ABC".to_string(),
+                    amount: None,
+                    balance: None,
+                    reality: ledger_parser::Reality::Real,
+                    status: None,
+                    comment: None,
+                }],
+            };
+            let mut b_trans = a_trans.clone();
+            if let LedgerItem::Transaction(trans) = a {
+                a_trans = trans.clone();
+            }
+            if let LedgerItem::Transaction(trans) = b {
+                b_trans = trans.clone();
+            };
+            a_trans.date.cmp(&b_trans.date)
+        });
+    }
 }
 
 impl Default for Model {
@@ -251,14 +298,3 @@ impl Default for Model {
     }
 }
 
-fn get_month_last_date(m: u32, year: i32) -> u32 {
-    if m == 12 {
-        NaiveDate::from_ymd(year + 1, 1, 1)
-    } else {
-        NaiveDate::from_ymd(year, m + 1, 1)
-    }
-    .signed_duration_since(NaiveDate::from_ymd(year, m, 1))
-    .num_days()
-    .try_into()
-    .unwrap()
-}

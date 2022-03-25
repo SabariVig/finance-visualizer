@@ -1,8 +1,9 @@
 mod handlers;
 mod model;
+mod utils;
 use std::sync::Arc;
 
-use crate::model::Model;
+use crate::{model::Model, utils::shutdown_signal};
 use axum::{routing::get, AddExtensionLayer, Router};
 use tokio::sync::Mutex;
 use tower_http::trace::TraceLayer;
@@ -14,6 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::TRACE)
         .finish();
+
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     let mut model = Model::new("/home/hawk/temp_ledger/ledger.complete")?;
     model.convert_to_currency("INR", vec!["USD"])?;
@@ -32,6 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("server started on port 8080");
     axum::Server::bind(&"0.0.0.0:8080".parse()?)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())
 }
+

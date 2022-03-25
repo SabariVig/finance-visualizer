@@ -21,7 +21,14 @@ pub struct NativeCurrency {
     convert_commodity: bool,
 }
 
-pub async fn ping() -> &'static str {
+// pub async fn ping() -> &'static str {
+//     "Pong"
+// }
+
+pub async fn ping(Extension(state): Extension<Arc<Mutex<Model>>>) -> &'static str {
+    let state = Arc::clone(&state);
+    let mut model = state.lock().await;
+    model.reload_file().unwrap();
     "Pong"
 }
 
