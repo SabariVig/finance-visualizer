@@ -77,7 +77,6 @@ impl Model {
         if convert_commodity {
             self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO: Handel error later
         }
-        self.sort_by_date();
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
@@ -106,7 +105,6 @@ impl Model {
         if convert_commodity {
             self.convert_to_currency("INR", vec!["*"]).unwrap(); // TODO Handel error later
         }
-        self.sort_by_date();
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
         for reports in &monthly_report.monthly_balances {
@@ -210,28 +208,6 @@ impl Model {
 
     pub fn _print(&self) {
         println!("{}", self.ledger);
-    }
-
-    pub fn sort_by_date(&mut self) {
-        let mut transactions = Vec::<Transaction>::new();
-        for item in &self.ledger.items {
-            if let LedgerItem::Transaction(transaction) = item {
-                transactions.push(transaction.clone());
-            }
-        }
-        let _ = &self.ledger.items.sort_by(|a, b| {
-            // HACK:
-            let mut a_trans = new_transaction();
-            let mut b_trans = new_transaction();
-
-            if let LedgerItem::Transaction(trans) = a {
-                a_trans = trans.clone();
-            }
-            if let LedgerItem::Transaction(trans) = b {
-                b_trans = trans.clone();
-            };
-            a_trans.date.cmp(&b_trans.date)
-        });
     }
 }
 
