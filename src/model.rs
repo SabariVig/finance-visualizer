@@ -107,6 +107,7 @@ impl Model {
         }
         let monthly_report = MonthlyReport::from(&self.ledger);
         let mut response_vec: Vec<LedgerResponse> = Vec::new();
+        let mut sum = Decimal::new(0, 0);
         for reports in &monthly_report.monthly_balances {
             for (_name, amount) in reports
                 .monthly_change
@@ -117,9 +118,10 @@ impl Model {
                 let date = get_month_last_date(reports.month, reports.year);
                 response_vec.push(LedgerResponse {
                     date: Some(NaiveDate::from_ymd(reports.year, reports.month, date).to_string()),
-                    amount: amount.quantity,
+                    amount: sum + amount.quantity,
                     account: Some(account.to_string()),
                 });
+                sum += amount.quantity
             }
         }
         response_vec
@@ -131,9 +133,16 @@ impl Model {
         }
         let balance = Balance::from(&self.ledger);
         let account_balance = balance.get_account_balance(&[&account]);
+        if let Some(amount) = account_balance.amounts.get("INR") {
+            return LedgerResponse {
+                date: None,
+                amount: amount.quantity,
+                account: Some(account),
+            };
+        }
         LedgerResponse {
             date: None,
-            amount: account_balance.amounts.get("INR").unwrap().quantity,
+            amount: Decimal::new(0,0),
             account: Some(account),
         }
     }
@@ -213,8 +222,7 @@ impl Model {
 
 impl Default for Model {
     fn default() -> Self {
-        // TODO: Change env to LEDGER_FILE
-        let path = env::var("LEDGER_FILE_DEV").unwrap();
+        let path = env::var("LEDGER_FILE").unwrap();
         println!("{}", path);
         let metadata = Path::new(&path).metadata().unwrap();
         let modified = FileTime::from_last_modification_time(&metadata);

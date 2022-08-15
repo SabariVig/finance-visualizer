@@ -17,7 +17,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-    let mut model = Model::new("/home/hawk/temp_ledger/ledger.complete")?;
+
+
+    let mut model = Model::new("/home/hawk/Downloads/Data/ledger.ledger")?;
     model.convert_to_currency("INR", vec!["USD"])?;
 
     let shared_shared = Arc::new(Mutex::new(model));
