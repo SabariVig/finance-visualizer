@@ -6,7 +6,17 @@ Finance Visualizer for CLI Plain text, double entry accounting tool [ledger](htt
 - Frontend uses Nextjs
 - Backend uses Rust with [axum](https://github.com/tokio-rs/axum) as http server
 
-Example file used for visualization  can be found at ./example.ledger
+
+Example file used for visualization  can be found at [example.ledger](./example.ledger)
+
+
+To Run Locally
+
+```bash
+LEDGER_FILE=example.ledger cargo run &
+yarn --cwd frontend 
+yarn --cwd frontend dev
+```
 
 Features
 
