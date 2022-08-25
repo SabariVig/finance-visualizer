@@ -1,0 +1,92 @@
+1969-06-09 * Balance
+    Assets:Bank         100 INR
+    Equity:Saving             -100 INR
+
+1969-09-01 * Salary
+    Assets:Bank           100 INR
+    Income:Salary        -100 INR
+
+1969-09-01 Buy Food
+    Assets:Bank           -16 INR
+    Expenses:Food          16 INR
+
+1969-09-01 Rent
+    Assets:Bank           -30 INR
+    Expenses:Rent          30 INR
+
+1969-10-01 * Salary
+    Assets:Bank           100 INR
+    Income:Salary        -100 INR
+
+1969-10-01 Buy Food
+    Assets:Bank           -10 INR
+    Expenses:Food          10 INR
+
+1969-10-01 Rent
+    Assets:Bank           -30 INR
+    Expenses:Rent          30 INR
+
+1969-10-01 Tax
+    Assets:Bank          -15 INR
+    Expenses:Tax          15 INR
+
+1969-11-01 * Salary
+    Assets:Bank           100 INR
+    Income:Salary        -100 INR
+
+1969-11-01 Buy Food
+    Assets:Bank            -8 INR
+    Expenses:Food           8 INR
+
+1969-11-01 Rent
+    Assets:Bank           -30 INR
+    Expenses:Rent          30 INR
+
+1969-12-01 * Salary
+    Assets:Bank           100 INR
+    Income:Salary        -100 INR
+
+1969-12-01 Buy Food
+    Assets:Bank           -10 INR
+    Expenses:Food          10 INR
+
+1969-12-01 Rent
+    Assets:Bank           -30 INR
+    Expenses:Rent          30 INR
+
+1970-01-01 * Salary
+    Assets:Bank           110 INR
+    Income:Salary        -110 INR
+
+1970-01-01 Buy Food
+    Assets:Bank           -15 INR
+    Expenses:Food          15 INR
+
+1970-01-01 Rent
+    Assets:Bank           -33 INR
+    Expenses:Rent          33 INR
+
+1970-02-01 * Salary
+    Assets:Bank           110 INR
+    Income:Salary        -110 INR
+
+1970-02-01 Buy Food
+    Assets:Bank           -19 INR
+    Expenses:Food          19 INR
+
+1970-02-01 Rent
+    Assets:Bank           -33 INR
+    Expenses:Rent          33 INR
+
+1970-03-01 * Salary
+    Assets:Bank           110 INR
+    Income:Salary        -110 INR
+
+1970-03-01 Buy Food
+    Assets:Bank           -23 INR
+    Expenses:Food          23 INR
+
+1970-03-01 Rent
+    Assets:Bank           -33 INR
+    Expenses:Rent          33 INR
+

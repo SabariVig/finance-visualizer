@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use ledger_parser::{Ledger, LedgerItem, Posting, Transaction};
+use ledger_parser::{Posting, Transaction};
 use tokio::signal;
 
 pub fn get_month_last_date(m: u32, year: i32) -> u32 {
@@ -58,4 +58,3 @@ pub fn new_transaction() -> Transaction {
         }],
     }
 }
-

@@ -1,7 +1,7 @@
 mod handlers;
 mod model;
 mod utils;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use crate::{model::Model, utils::shutdown_signal};
 use axum::{routing::get, AddExtensionLayer, Router};
@@ -18,9 +18,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
+    let path = env::var("LEDGER_FILE").unwrap();
+    let native_currency = env::var("NATIVE_CURRENCY").unwrap_or("INR".to_string());
+    let foreign_currency = env::var("FOREIGN_CURRENCY").unwrap_or("USD".to_string());
 
-    let mut model = Model::new("/home/hawk/Downloads/Data/ledger.ledger")?;
-    model.convert_to_currency("INR", vec!["USD"])?;
+    let mut model = Model::new(path)?;
+    model.convert_to_currency(&native_currency, vec![&foreign_currency])?;
 
     let shared_shared = Arc::new(Mutex::new(model));
     let app = Router::new()
@@ -40,4 +43,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     Ok(())
 }
-
